@@ -1,0 +1,40 @@
+name: Build and Release RTX Remix
+
+on:
+  release:
+    types: [created]
+  # ad-hoc trigger
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+
+      - name: Install Dependencies
+        run: |
+          choco install python --version=3.9
+          choco install meson --version=0.61.4
+          choco install visualstudio2019buildtools --package-parameters "--includeRecommended --includeOptional"
+          choco install windows-sdk-10-version-19041 --version=10.0.19041.0
+          choco install vulkan.lunarg.sdk --version=1.3.211.0
+
+      - name: Build dxvk-remix
+        run: |
+          cd dxvk-remix
+          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned .\build_dxvk_all_ninja.ps1
+
+      - name: Package Artifacts
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: "_vs/dxvk-remix.zip"
+          asset_name: dxvk-remix.zip
+          asset_content_type: application/zip
+          api_key: ${{ secrets.GITHUB_TOKEN }}
